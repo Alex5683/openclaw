@@ -27,16 +27,20 @@ COPY . .
 RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
 ENV OPENCLAW_PREFER_PNPM=1
+
 RUN pnpm ui:build
+
+# Set up pnpm global bin directory and install OpenClaw CLI globally as root
+ENV PNPM_HOME="/home/node/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN mkdir -p /home/node/.local/share/pnpm && pnpm add -g openclaw
 
 ENV NODE_ENV=production
 
-# Allow non-root user to write temp files during runtime/tests.
-RUN chown -R node:node /app
+# Allow non-root user to write temp files during runtime/tests and pnpm global bin
+RUN chown -R node:node /app /home/node/.local/share/pnpm
 
 # Security hardening: Run as non-root user
-# The node:22-bookworm image includes a 'node' user (uid 1000)
-# This reduces the attack surface by preventing container escape via root privileges
 USER node
 
 # Start gateway server with default config.
